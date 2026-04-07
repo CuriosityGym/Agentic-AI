@@ -55,14 +55,15 @@ This starts the backend engine that manages your Agentic Flows.
     cd [folder-name]
     # Example: cd exam-strategy-agent
     ```
-2.  **Activate Environment & Install Packages:**
+2.  **Create Python Environment, Activate Python Environment & Install Packages:**
     ```bash
-    source env_name/bin/activate
+    python3 -m venv my_env
+    source my_env/bin/activate
     pip install -r requirements.txt
     ```
 3.  **Launch the Gradio UI:**
     ```bash
-    python3 app.py
+    python3 app.py or python3 app_chat.py
     ```
 4.  **Get the Public URLs:**
     * **Langflow URL:** Copy the Public URL for Port **7860** from the Ports tab.
