@@ -1,0 +1,14 @@
+# ── Core dependencies ──────────────────────────────────────────────────────────
+gradio>=4.0.0
+requests>=2.31.0
+
+# ── Stretch addons (uncomment when needed) ────────────────────────────────────
+
+# Load LANGFLOW_TOKEN and other secrets from a .env file instead of hardcoding them in config.py
+# python-dotenv>=1.0.0
+
+# Async HTTP support — useful if you want non-blocking Langflow API calls in future agents
+# httpx>=0.28.0
+
+# Image processing — useful if you want to resize/preview uploaded project files
+# Pillow>=11.0.0
