@@ -1,0 +1,15 @@
+gradio>=4.0.0
+pandas>=2.0.0
+icalendar>=5.0.0
+requests>=2.28.0
+python-dateutil>=2.8.0
+pytz>=2023.3
+
+# ── STRETCH ADDON DEPENDENCIES ────────────────────────────────────────────────
+# Uncomment the packages needed for your stretch feature and run:
+# pip install -r requirements.txt
+#
+# langchain>=0.1.0          # for multi-step LLM chains
+# openai>=1.0.0             # for direct OpenAI API access
+# chromadb>=0.4.0           # for vector store / RAG
+# python-docx>=1.0.0        # for Word document parsing
