@@ -19,14 +19,13 @@ import time
 
 load_dotenv()
 
-SUPDATA_API_KEY   = os.getenv("SUPDATA_API_KEY",   "")
-SUPDATA_BASE_URL  = os.getenv("SUPDATA_BASE_URL",  "")
 LANGFLOW_BASE_URL = os.getenv("LANGFLOW_BASE_URL", "https://api.mysphere.net") # Do not change this URL
 LANGFLOW_FLOW_ID  = os.getenv("LANGFLOW_FLOW_ID",  "")
 # Create Langflow API Key by going to settings -> API Keys -> New. Copy the API key and paste here. Same API key can be used for all flows within the same Langflow instance running inside your github Codespace.
 LANGFLOW_API_KEY  = os.getenv("LANGFLOW_API_KEY",  "")
 # You can find the component ID for the Google Generative AI in your Langflow flow when you select this component. A small box will appear that will display the ID. Over hove this ID. Click when it says "Click to Copy Full ID". After click the ID can be pasted below. ID looks like "component-123abc". Copy that ID and set it here so the Langflow call can target it with the right tweaks.
 TWEAKS_API_GOOGLE_COMPONENT_ID = os.getenv("TWEAKS_API_GOOGLE_COMPONENT_ID", "")
+TRANSCRIPT_URL = f"{LANGFLOW_BASE_URL}/api/v1/proxy/supadata/transcript"
 
 HEADERS = {
     "Content-Type": "application/json",

@@ -1,10 +1,10 @@
 """
-transcript.py — YouTube URL helpers and transcript fetching via Supadata.ai.
+transcript.py — YouTube URL helpers and transcript fetching via MySphere proxy.
 
 What this file does:
     1. Detects a YouTube link inside any text string
     2. Extracts the video ID from the link
-    3. Calls the Supadata.ai API to get the full spoken transcript of the video
+    3. Calls the MySphere API proxy to get the full spoken transcript of the video
 
 Students: You should NOT need to edit this file.
 """
@@ -12,11 +12,10 @@ Students: You should NOT need to edit this file.
 import re
 import requests
 
-from config import SUPDATA_API_KEY, SUPDATA_BASE_URL
+from config import TRANSCRIPT_URL, _api_key_store, _store_lock
 
 
 # ── YouTube URL & ID patterns ──────────────────────────────────────────────
-# These regex patterns match all common YouTube URL formats.
 _YT_URL_RE = re.compile(
     r"https?://(?:www\.)?(?:youtu\.be/|youtube\.com/(?:watch\?[^\s]*v=|shorts/|embed/))[^\s<>\"']*"
 )
@@ -45,7 +44,7 @@ def extract_video_id(url: str) -> str | None:
 
 def fetch_transcript(youtube_url: str) -> str:
     """
-    Call Supadata.ai to retrieve the full video transcript as plain text.
+    Call the MySphere proxy to retrieve the full video transcript as plain text.
 
     Args:
         youtube_url: A full YouTube URL (e.g. https://youtu.be/abc123)
@@ -54,45 +53,43 @@ def fetch_transcript(youtube_url: str) -> str:
         The full transcript as a single string of text.
 
     Raises:
-        EnvironmentError: If SUPDATA_API_KEY is missing from .env.
-        ValueError:       If the video is private, has no captions, or the API fails.
-
-    ── Development tip ───────────────────────────────────────────────────────
-    To avoid real API calls while testing, comment out the requests.get() block
-    and uncomment the dummy_data block below it.
+        EnvironmentError: If no active session token is found (codespace not registered).
+        ValueError:       If the video has no captions, is private, or the proxy fails.
     """
-    if not SUPDATA_API_KEY:
-        raise EnvironmentError("SUPDATA_API_KEY is not set. Add it to your .env file.")
+    with _store_lock:
+        store = _api_key_store.get("active")
 
-    # ── Live API call ──────────────────────────────────────────────────────
+    if not store or not store.get("key"):
+        raise EnvironmentError(
+            "No active session token. Please register your codespace first."
+        )
+
+    token = store["key"]
+    print(f"Using session token: {token[:30]}...")  # Debug log (only show the beginning for security)
+
     resp = requests.get(
-        f"{SUPDATA_BASE_URL}/youtube/transcript",
-        headers={"x-api-key": SUPDATA_API_KEY},
+        TRANSCRIPT_URL,
+        headers={"gradio-token": token},
         params={"url": youtube_url, "lang": "en", "text": "true"},
         timeout=30,
     )
 
     if resp.status_code == 401:
-        raise ValueError("Invalid Supdata API key. Check SUPDATA_API_KEY in .env.")
+        raise EnvironmentError(
+            "Session token is invalid or expired. Please register your codespace again."
+        )
     if resp.status_code == 404:
         raise ValueError(
             "Transcript unavailable. The video may be private, "
             "age-restricted, or have captions disabled."
         )
     if resp.status_code != 200:
-        raise ValueError(f"Supdata API error {resp.status_code}: {resp.text[:300]}")
+        raise ValueError(f"Proxy error {resp.status_code}: {resp.text[:300]}")
 
     data = resp.json()
 
-    # ── Dummy data for development (swap in when you don't want real API calls) ──
-    # data = {
-    #     "content": "hello this is a sample transcript for testing purposes only..."
-    # }
-
-    # Supadata returns {"content": "full text..."} when ?text=true is used.
-    # Without ?text=true it returns {"content": [{"text": "...", "offset": 0}, ...]}
     content = data.get("content", data.get("transcript", data.get("text", "")))
-
+    print(f"Raw transcript content: {content}...")  # Debug log
     if isinstance(content, list):
         return " ".join(
             seg.get("text", str(seg)) if isinstance(seg, dict) else str(seg)
