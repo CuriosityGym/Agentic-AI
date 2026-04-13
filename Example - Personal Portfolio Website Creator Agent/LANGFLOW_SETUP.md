@@ -7,11 +7,12 @@ required by the **Personal Portfolio Website Builder** inside Langflow.
 
 ## A. How to Create the Designer Flow in Langflow
 
-1. Open Langflow at `http://localhost:7860`.
+1. Open Langflow at your registered Codespace URL.
 2. Click **New Flow → Blank Flow**.
 3. Name it `designer_flow` and save.
 4. Copy the auto-generated **Flow ID** (visible in the URL or flow settings).
-   Update `DESIGNER_FLOW_ID` in `services/langflow_client.py` if it differs.
+   Update `DESIGNER_FLOW_ID` in `config.py` if it differs.
+5. Find the **Google Generative AI component ID** and set `DESIGNER_FLOW_TWEAKS_API_GOOGLE_COMPONENT_ID` in `config.py`. (See [Section E](#e-finding-google-generative-ai-component-ids) for instructions.)
 
 ### Designer Flow Purpose
 Receives the full `student_data` JSON and produces a design specification:
@@ -27,10 +28,11 @@ Receives the full `student_data` JSON and produces a design specification:
 
 ## B. How to Create the Coder Flow in Langflow
 
-1. Open Langflow at `http://localhost:7860`.
+1. Open Langflow at your registered Codespace URL.
 2. Click **New Flow → Blank Flow**.
 3. Name it `coder_flow` and save.
-4. Copy the auto-generated **Flow ID** and set `CODER_FLOW_ID` accordingly.
+4. Copy the auto-generated **Flow ID** and set `CODER_FLOW_ID` in `config.py` accordingly.
+5. Find the **Google Generative AI component ID** and set `CODER_FLOW_TWEAKS_API_GOOGLE_COMPONENT_ID` in `config.py`. (See [Section E](#e-finding-google-generative-ai-component-ids) for instructions.)
 
 ### Coder Flow Purpose
 Receives `student_data` + `design` spec and returns three website files:
@@ -52,7 +54,7 @@ Receives `student_data` + `design` spec and returns three website files:
 |-----------|------|
 | **Chat Input** | Receives the stringified `student_data` JSON |
 | **Prompt** | System prompt instructing the model to produce a design JSON |
-| **OpenAI / Anthropic LLM** | Language model that generates the design spec |
+| **Google Generative AI** | Language model that generates the design spec |
 | **JSON Parser** _(optional)_ | Ensures output is valid JSON |
 | **Chat Output** | Returns the design spec to the API caller |
 
@@ -75,7 +77,7 @@ Respond ONLY with valid JSON. No markdown, no explanation.
 |-----------|------|
 | **Chat Input** | Receives stringified `{"student_data": {...}, "design": {...}}` |
 | **Prompt** | System prompt instructing the model to write HTML/CSS/JS |
-| **OpenAI / Anthropic LLM** | Language model that generates the website code |
+| **Google Generative AI** | Language model that generates the website code |
 | **JSON Parser** _(optional)_ | Validates the output JSON structure |
 | **Chat Output** | Returns `{"index.html": "...", "style.css": "...", "main.js": "..."}` |
 
@@ -104,11 +106,12 @@ Respond ONLY with valid JSON. No markdown, no explanation.
 Set in your shell or a `.env` file before running `app.py`:
 
 ```bash
-# Optional: only required if Langflow has authentication enabled
-export LANGFLOW_TOKEN="your-langflow-api-token"
-
-# Optional: override the default base URL
-export LANGFLOW_BASE_URL="http://localhost:7860"
+export LANGFLOW_BASE_URL="https://api.mysphere.net"                           # Do not change this URL
+export LANGFLOW_TOKEN="your-langflow-api-token"                               # From Langflow → Settings → API Keys
+export DESIGNER_FLOW_ID="your-designer-flow-id"
+export DESIGNER_FLOW_TWEAKS_API_GOOGLE_COMPONENT_ID="component-xxxxxx"        # See Section E
+export CODER_FLOW_ID="your-coder-flow-id"
+export CODER_FLOW_TWEAKS_API_GOOGLE_COMPONENT_ID="component-xxxxxx"           # See Section E
 ```
 
 ### Obtaining a Langflow API Token
@@ -119,15 +122,24 @@ export LANGFLOW_BASE_URL="http://localhost:7860"
 
 ### API Call Structure
 
-The Python client (`services/langflow_client.py`) POSTs to:
+The Python client (`langflow_client.py`) POSTs to:
 
 ```
-POST http://localhost:7860/api/v1/run/{flow_id}
+POST https://api.mysphere.net/api/v1/proxy/langflow/run/{flow_id}
 Content-Type: application/json
-Authorization: Bearer <token>
+x-api-key: <LANGFLOW_TOKEN>
+gradio-token: <your-gradio-api-key>
 
 {
-  "input_value": "<stringified JSON payload>"
+  "input_value": "<stringified JSON payload>",
+  "tweaks": [
+    {
+      "component_id": "<DESIGNER_or_CODER_FLOW_TWEAKS_API_GOOGLE_COMPONENT_ID>",
+      "parameters": {
+        "type": "google_generative_ai"
+      }
+    }
+  ]
 }
 ```
 
@@ -164,12 +176,28 @@ Authorization: Bearer <token>
 To add a **Deployer Agent** or any other agent:
 
 1. Create the flow in Langflow and note its Flow ID.
-2. Add a constant in `services/langflow_client.py`:
+2. Add constants in `config.py`:
    ```python
-   DEPLOYER_FLOW_ID = "deployer_flow"
+   DEPLOYER_FLOW_ID = os.getenv("DEPLOYER_FLOW_ID", "")
+   DEPLOYER_FLOW_TWEAKS_API_GOOGLE_COMPONENT_ID = os.getenv("DEPLOYER_FLOW_TWEAKS_API_GOOGLE_COMPONENT_ID", "")
    ```
 3. Add a wrapper function following the same pattern as `call_designer_agent()`.
 4. Call the new function from `run_portfolio_generation()` after the coder step.
+
+---
+
+## E. Finding Google Generative AI Component IDs
+
+Each Langflow flow that uses a **Google Generative AI** component requires you to supply
+its component ID so the app can send the correct `tweaks` payload.
+
+1. Open the flow in Langflow.
+2. Click on the **Google Generative AI** component to select it.
+3. A small information box appears — hover over the ID field until it reads **"Click to Copy Full ID"**.
+4. Click to copy. The ID looks like `component-123abc`.
+5. Paste this value into `config.py` (or the corresponding env var):
+   - Designer flow → `DESIGNER_FLOW_TWEAKS_API_GOOGLE_COMPONENT_ID`
+   - Coder flow    → `CODER_FLOW_TWEAKS_API_GOOGLE_COMPONENT_ID`
 
 ---
 
